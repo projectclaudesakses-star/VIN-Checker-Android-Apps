@@ -1,0 +1,45 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Nomor build otomatis dari GitHub (1, 2, 3, ...) supaya HP bisa update aplikasi
+def buildNo = Integer.parseInt(System.getenv('GITHUB_RUN_NUMBER') ?: '1')
+
+android {
+    namespace 'com.vinchecker.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.vinchecker.app'
+        minSdk 26
+        targetSdk 35
+        versionCode buildNo
+        versionName "1.${buildNo}"
+    }
+
+    signingConfigs {
+        release {
+            storeFile file('release.jks')
+            storePassword System.getenv('KEYSTORE_PASSWORD')
+            keyAlias 'vinchecker'
+            keyPassword System.getenv('KEYSTORE_PASSWORD')
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+}
