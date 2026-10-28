@@ -1,0 +1,50 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ambil kode
+        uses: actions/checkout@v4
+
+      - name: Siapkan Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Siapkan Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Siapkan kunci tanda tangan
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Secret KEYSTORE_BASE64 belum diisi. Buka Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | tr -d '\r\n ' | base64 -d > app/release.jks
+
+      - name: Build APK
+        env:
+          KEYSTORE_PASSWORD: 'ihDm9iq81fqy4j2ddhxj0Lzw'
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Terbitkan APK di Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk VIN-Checker.apk
+          TAG="v${{ github.run_number }}-${{ github.run_attempt }}"
+          gh release create "$TAG" VIN-Checker.apk --title "VIN Checker $TAG" --notes "Build otomatis dari GitHub Actions." --latest
